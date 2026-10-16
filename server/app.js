@@ -32,13 +32,19 @@ const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch
 
 const app = express();
 
-// On Vercel the platform pre-reads request bodies. Switch that off so
-// express.json() and multer can read the body themselves.
+// Vercel may read the request body before Express sees it. Handle both ways:
+// - body already parsed by the platform: keep it and tell express.json() to skip it
+// - body parsed lazily on first access: switch that off so express.json()/multer can read it
 app.use((req, res, next) => {
   try {
-    Object.defineProperty(req, 'body', { value: undefined, writable: true, configurable: true, enumerable: true });
+    const d = Object.getOwnPropertyDescriptor(req, 'body');
+    if (d && 'value' in d && d.value !== undefined) {
+      req._body = true; // body-parser skips requests marked as already parsed
+    } else if (d && d.get) {
+      Object.defineProperty(req, 'body', { value: undefined, writable: true, configurable: true, enumerable: true });
+    }
   } catch {
-    // not running on Vercel: nothing to switch off
+    // plain Node: nothing to switch off
   }
   next();
 });
