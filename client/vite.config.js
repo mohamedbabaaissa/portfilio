@@ -1,0 +1,14 @@
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  plugins: [react()],
+  envDir: '..', // read VITE_ADMIN_PATH from the .env in the project root
+  server: {
+    port: 5173,
+    proxy: {
+      '/api': 'http://localhost:3001',
+      '/uploads': 'http://localhost:3001',
+    },
+  },
+});
